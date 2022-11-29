@@ -1,0 +1,465 @@
+---
+title: "PSTAT 134 - Final Project"
+author: "Jonathan Palada Rosal"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+  pdf_document:
+    latex_engine: pdflatex
+fontfamily: palatino
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE)
+library(tidyverse)
+library(lubridate)
+library(tidymodels)
+library(skimr)
+library(patchwork)
+library(janitor)
+library(vembedr)
+library(ISLR)
+library(ISLR2)
+library(discrim)
+library(poissonreg)
+library(corrr)
+library(klaR)
+library(readr)
+library(corrplot)
+library(tune)
+library(ggplot2)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library("ggpubr")
+library(glmnet)
+library(xgboost)
+theme_set(
+  theme_bw() +
+    theme(legend.position = "top")
+  )
+library(MLmetrics)
+library(vip)
+```
+
+## Introduction
+
+
+### (our topic)
+
+
+### How my model can be helpful
+
+
+### Reading in the dataset
+
+```{r}
+laptop <- read.csv("Cleaned_Laptop_data.csv")
+head(laptop)
+laptop <- laptop %>%
+  clean_names()
+laptop <- laptop[-19:-23] # removed the variables not needed for the study
+```
+
+```{r}
+laptop <- subset(laptop, brand != "Missing") 
+laptop <- subset(laptop, model != "Missing") 
+laptop <- subset(laptop, processor_brand != "Missing")
+laptop <- subset(laptop, processor_name != "Missing") 
+laptop <- subset(laptop, processor_gnrtn != "Missing") 
+laptop <- subset(laptop, ram_gb != "Missing") 
+laptop <- subset(laptop, ram_type != "Missing") 
+laptop <- subset(laptop, ssd != "Missing") 
+laptop <- subset(laptop, hdd != "Missing") 
+laptop <- subset(laptop, os != "Missing") 
+laptop <- subset(laptop, os_bit != "Missing") 
+laptop <- subset(laptop, graphic_card_gb != "Missing") 
+laptop <- subset(laptop, weight != "Missing") 
+laptop <- subset(laptop, display_size != "Missing") 
+laptop <- subset(laptop, warranty != "Missing") 
+laptop <- subset(laptop, touchscreen != "Missing") 
+laptop <- subset(laptop, msoffice != "Missing") 
+laptop <- subset(laptop, latest_price != "Missing") # 354 observations now
+```
+
+```{r}
+summary(laptop)
+```
+
+### An overview of the dataset
+
+
+## Explanatory Data Analysis
+
+
+## Preparation for modeling
+
+The following models conducted were done in this order and procedure:
+1. Building the model
+2. Running the model
+3. Making predictions using the model
+
+### Preparing the data
+
+```{r}
+laptop <- laptop %>%
+  mutate(brand = factor(brand)) %>%
+  mutate(model = factor(model)) %>%
+  mutate(processor_brand = factor(processor_brand)) %>%
+  mutate(processor_name = factor(processor_name)) %>%
+  mutate(processor_gnrtn = factor(processor_gnrtn)) %>%
+  mutate(ram_gb = factor(ram_gb)) %>%
+  mutate(ram_type  = factor(ram_type)) %>%
+  mutate(ssd = factor(ssd)) %>%
+  mutate(hdd = factor(hdd)) %>%
+  mutate(os = factor(os)) %>%
+  mutate(os_bit = factor(os_bit)) %>%
+  mutate(weight = factor(weight)) %>%
+  mutate(display_size = factor(display_size)) %>%
+  mutate(touchscreen = factor(touchscreen)) %>%
+  mutate(msoffice = factor(msoffice))
+head(laptop)
+```
+I mutated the variables by factoring the numerical predictors.
+
+### Splitting the data
+
+```{r}
+set.seed(12)
+ec_split <- laptop %>%
+  initial_split(prop = 0.80, strata = "latest_price")
+
+ec_train <- training(ec_split)
+dim(ec_train) #282 obs. 18 columns
+ec_test <- testing(ec_split)
+dim(ec_test) #72 obs. 18 columns
+```
+
+### Making the recipe and folds
+
+```{r}
+ec_recipe <- recipe(latest_price ~ brand + model + processor_brand + processor_name + processor_gnrtn + ram_gb + ram_type + ssd + hdd + os + os_bit + graphic_card_gb + weight + display_size + warranty + touchscreen + msoffice, data = ec_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors()) %>%
+  step_novel(all_nominal_predictors()) %>%
+  step_zv(all_nominal_predictors())
+               
+
+ec_folds <- vfold_cv(ec_train, strata = latest_price, v = 10, repeats = 5)
+```
+
+We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the vehicle. I `step_dummy()`  all nominal predictors to encode them as categorical predictors. I also `step_normalize()` to center and scale all the predictors. I `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
+
+## The models
+
+### Ridge Regression
+
+The first model I decided to create was a Ridge Regression Model. Ridge regression is one of the alternative approaches to modeling. Ridge is one of the main types of the Regularization approach. The goal of the Regularization approach is to shrink the coefficient estimates toward zero, similar to least squares. Ridge minimizes the sum of squared residuals and $\lambda * slope^2$.
+
+```{r, message=FALSE, warning=FALSE}
+ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
+  set_mode("regression") %>%
+  set_engine("glmnet")
+
+ridge_workflow <- workflow() %>%
+  add_recipe(ec_recipe) %>%
+  add_model(ridge_spec)
+
+set.seed(12)
+
+penalty_grid <- grid_regular(penalty(range = c(1, 11)), levels = 50)
+penalty_grid
+
+tune_res <- tune_grid(
+  ridge_workflow,
+  resamples = ec_folds,
+  grid = penalty_grid
+)
+tune_res
+
+autoplot(tune_res)
+```
+
+In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also.
+
+```{r}
+Ridge_RMSE <- collect_metrics(tune_res) %>%
+  dplyr::select(.metric, mean, std_err) %>%
+  head()
+```
+
+We collect the metrics of our regression tune and look at the mean and standard error.
+
+```{r}
+best_penalty <- select_best(tune_res, metric = "rsq")
+best_penalty
+
+ridge_final <- finalize_workflow(ridge_workflow, best_penalty)
+ridge_final_fit <- fit(ridge_final, data = ec_train)
+
+Ridge_Prediction <- predict(ridge_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
+Ridge_Prediction <- bind_cols(Ridge_Prediction, ec_test %>% dplyr::select(latest_price))
+
+Ridge_Graph <- Ridge_Prediction %>%
+  ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha = 1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+Ridge_Accuracy <- augment(ridge_final_fit, new_data = ec_test) %>%
+  rsq(truth = latest_price, estimate = .pred)
+```
+
+Here we prepare the predictions, graphs, and plots, for comparison at the end.
+
+
+### Lasso Regression
+
+The second model I decided to create was a Lasso Regression Model. Lasso regression is also one of the alternative approaches to modeling. Like Ridge, Lasso is one of the main types of the Regularization approach.The difference is Lasso minimizes the sum of squared residuals and $\lambda * |slope|$.
+
+```{r, message=FALSE, warning=FALSE}
+lasso_spec <-
+  linear_reg(penalty = tune(), mixture = 1) %>%
+  set_mode("regression") %>%
+  set_engine("glmnet")
+
+lasso_workflow <- workflow() %>%
+  add_recipe(ec_recipe) %>%
+  add_model(lasso_spec)
+
+set.seed(12)
+
+tune_res_lasso <- tune_grid(
+  lasso_workflow,
+  resamples = ec_folds,
+  grid = penalty_grid
+)
+tune_res_lasso
+
+autoplot(tune_res_lasso)
+```
+
+In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots does not seem to be as smooth as the ridge model.
+
+```{r}
+Lasso_RMSE <- collect_metrics(tune_res_lasso) %>%
+  dplyr::select(.metric, mean, std_err) %>%
+  head()
+```
+
+We collect the metrics of our regression tune and look at the mean and standard error.
+
+```{r}
+best_penalty_lasso <- select_best(tune_res_lasso, metric = "rsq")
+
+lasso_final <- finalize_workflow(lasso_workflow, best_penalty_lasso)
+lasso_final_fit <- fit(lasso_final, data = ec_train)
+
+Lasso_Prediction <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
+Lasso_Prediction <- bind_cols(Lasso_Prediction, ec_test %>% dplyr::select(latest_price))
+
+Lasso_Graph <- Lasso_Prediction %>%
+  ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+Lasso_Accuracy <- augment(lasso_final_fit, new_data = ec_test) %>%
+  rsq(truth = latest_price, estimate = .pred)
+```
+
+Here we prepare the predictions, graphs, and plots, for comparison at the end.
+
+### Boosted Model
+
+The third model I created was a boosted tree model. A boosted model builds a weak decision tree that has low predictive accuracy. Then the model goes through the process of sequentially improving previous decision trees. Doing this, slowly reduces the bias at each step without drastically increasing the variance.
+```{r, message=FALSE, warning=FALSE}
+boost_spec <- boost_tree() %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+boost_wf <- workflow() %>%
+  add_model(boost_spec %>%
+  set_args(trees = tune())) %>%
+  add_recipe(ec_recipe)
+
+set.seed(12)
+
+boost_grid <- grid_regular(trees(range = c(10, 2000)), levels = 50)
+
+boost_tune_res <- tune_grid(
+  boost_wf,
+  resamples = ec_folds,
+  grid = boost_grid,
+)
+
+autoplot(boost_tune_res)
+```
+
+In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The tree plots here seem to go straight up and then flatten out, never changing it's slope again.
+
+
+```{r}
+Boost_RMSE <- collect_metrics(boost_tune_res) %>% 
+  dplyr::select(.metric, mean, std_err) %>%
+  head()
+```
+
+We collect the metrics of our regression tune and look at the mean and standard error.
+
+```{r}
+best_boost_final <- select_best(boost_tune_res)
+best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
+best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
+
+Boost_Prediction <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-latest_price))
+Boost_Prediction <- bind_cols(Boost_Prediction, ec_test %>% dplyr::select(latest_price))
+
+Boost_Graph <- Boost_Prediction %>%
+  ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+Boost_Accuracy <- augment(best_boost_final_model_fit, new_data = ec_test) %>%
+  rsq(truth = latest_price, estimate = .pred)
+```
+
+Here we prepare the predictions, graphs, and plots, for comparison at the end.
+
+### Decision - Tree model
+
+The fourth and final model I decided to make is a decision tree model. A decision tree model puts the data into classified chunks. Then based on the data from those chunks, the model does it's best to predict the outcome.
+```{r, message=FALSE, warning=FALSE}
+tree_spec <-decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("regression")
+  
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_recipe(ec_recipe)
+
+set.seed(12)
+
+param_grid <- grid_regular(cost_complexity(range = c(-5, 5)), levels = 50)
+
+tune_res_tree <- tune_grid(
+  class_tree_wf,
+  resamples = ec_folds,
+  grid = param_grid,
+)
+
+autoplot(tune_res_tree)
+```
+
+In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the lasso plots. The reasoning is the plots are not smooth, and seem to have sudden changes of slope.
+
+```{r}
+Tree_RMSE <- collect_metrics(tune_res_tree) %>%
+  dplyr::select(.metric, mean, std_err) %>%
+  head()
+```
+
+We collect the metrics of our regression tune and look at the mean and standard error.
+
+```{r}
+best_complexity <- select_best(tune_res_tree)
+class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
+class_tree_final_fit <- fit(class_tree_final, data = ec_train)
+
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+The tree plot asks specific questions. These questions can only be answered yes or no. 
+
+```{r}
+Tree_Prediction <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
+Tree_Prediction <- bind_cols(Tree_Prediction, ec_test %>% dplyr::select(latest_price))
+
+Tree_Graph <- Tree_Prediction %>%
+  ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_test) %>%
+  rsq(truth = latest_price, estimate = .pred)
+```
+
+Here we prepare the predictions, graphs, and plots, for comparison at the end.
+
+## Conclusions
+
+Comparison of the four different models: 
+We will compare the four different models in this by these factors:
+- Prediction Graphs
+- RMSE & RSQ (R-Squared) from Training Set
+- RSQ from Testing Set
+
+### Graphs
+
+```{r}
+figure <- ggarrange(Ridge_Graph, Lasso_Graph, Boost_Graph,Tree_Graph,
+                    labels = c("Ridge", "Lasso", "Boost","Tree"),
+                    ncol = 2, nrow = 2)
+figure
+```
+
+In the plots the dotted line represents where the points would be if the actual price of the vehicle was the same number as the prediction. Looking at the plots I would say that the Boost has the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
+
+### RMSE & RSQ (Training Set)
+
+Ridge
+```{r}
+head(Ridge_RMSE)
+```
+
+Looking at the mean and standard we get that 
+Ridge has the following values:
+```RMSE``` : mean = 18,922 & standard error = 2013
+```RSQ``` : mean = 0.7994 & standard error = 0.03249
+
+Lasso
+```{r}
+head(Lasso_RMSE)
+```
+Looking at the mean and standard we get that 
+Lasso has the following values:
+```RMSE``` : mean = 20,886 & standard error = 2544
+```RSQ``` : mean = 0.715 & standard error = 0.04805
+
+Boost
+```{r}
+head(Boost_RMSE)
+```
+Looking at the mean and standard we get that 
+Boost has the following values:
+```RMSE``` : mean = 23,443 & standard error = 2127
+```RSQ``` : mean = 0.8232 & standard error = 0.04482
+
+Tree
+```{r}
+head(Tree_RMSE)
+```
+Looking at the mean and standard we get that 
+Tree has the following values:
+```RMSE``` : mean = 25,233 & standard error = 2102
+```RSQ``` : mean = 0.584 & standard error = 0.0399
+
+Looking at all the model's rmse and rsq, Boost would be the best model to test on the Testing Set. Boost has the lowest RMSE and highest RSQ.
+
+### R-Squared for (Testing Set)
+
+```{r}
+rsq_comparisons <- bind_rows(Ridge_Accuracy, Lasso_Accuracy, Boost_Accuracy, Tree_Accuracy) %>% 
+  tibble() %>% mutate(model = c("Ridge", "Lasso", "Boost", "Tree")) %>% 
+  dplyr::select(model, .estimate) %>%
+  arrange(.estimate)
+
+rsq_comparisons
+```
+
+Looking at the R-Squared of the four different models we see that the Boost model had the highest R-Squared and the tree model had the lowest R-Squared.
+
+### Summary
+
+\
+
