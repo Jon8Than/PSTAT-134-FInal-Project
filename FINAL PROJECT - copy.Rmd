@@ -65,11 +65,12 @@ head(laptop)
 laptop <- laptop %>%
   clean_names()
 laptop <- laptop[-19:-23] # removed the variables not needed for the study
+laptop <- laptop[-1:-2] # removed the brand and model variable
 ```
 
 ```{r}
-laptop <- subset(laptop, brand != "Missing") 
-laptop <- subset(laptop, model != "Missing") 
+#laptop <- subset(laptop, brand != "Missing") 
+#laptop <- subset(laptop, model != "Missing") 
 laptop <- subset(laptop, processor_brand != "Missing")
 laptop <- subset(laptop, processor_name != "Missing") 
 laptop <- subset(laptop, processor_gnrtn != "Missing") 
@@ -85,7 +86,7 @@ laptop <- subset(laptop, display_size != "Missing")
 laptop <- subset(laptop, warranty != "Missing") 
 laptop <- subset(laptop, touchscreen != "Missing") 
 laptop <- subset(laptop, msoffice != "Missing") 
-laptop <- subset(laptop, latest_price != "Missing") # 354 observations now
+laptop <- subset(laptop, latest_price != "Missing") # 415 observations now
 ```
 
 ```{r}
@@ -109,8 +110,8 @@ The following models conducted were done in this order and procedure:
 
 ```{r}
 laptop <- laptop %>%
-  mutate(brand = factor(brand)) %>%
-  mutate(model = factor(model)) %>%
+ # mutate(brand = factor(brand)) %>%
+  #mutate(model = factor(model)) %>%
   mutate(processor_brand = factor(processor_brand)) %>%
   mutate(processor_name = factor(processor_name)) %>%
   mutate(processor_gnrtn = factor(processor_gnrtn)) %>%
@@ -136,15 +137,15 @@ ec_split <- laptop %>%
   initial_split(prop = 0.80, strata = "latest_price")
 
 ec_train <- training(ec_split)
-dim(ec_train) #282 obs. 18 columns
+dim(ec_train) #331 obs. 18 columns
 ec_test <- testing(ec_split)
-dim(ec_test) #72 obs. 18 columns
+dim(ec_test) #84 obs. 18 columns
 ```
 
 ### Making the recipe and folds
 
 ```{r}
-ec_recipe <- recipe(latest_price ~ brand + model + processor_brand + processor_name + processor_gnrtn + ram_gb + ram_type + ssd + hdd + os + os_bit + graphic_card_gb + weight + display_size + warranty + touchscreen + msoffice, data = ec_train) %>%
+ec_recipe <- recipe(latest_price ~ processor_brand + processor_name + processor_gnrtn + ram_gb + ram_type + ssd + hdd + os + os_bit + graphic_card_gb + weight + display_size + warranty + touchscreen + msoffice, data = ec_train) %>%
   step_dummy(all_nominal_predictors()) %>%
   step_normalize(all_predictors()) %>%
   step_novel(all_nominal_predictors()) %>%
@@ -154,7 +155,7 @@ ec_recipe <- recipe(latest_price ~ brand + model + processor_brand + processor_n
 ec_folds <- vfold_cv(ec_train, strata = latest_price, v = 10, repeats = 5)
 ```
 
-We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the vehicle. I `step_dummy()`  all nominal predictors to encode them as categorical predictors. I also `step_normalize()` to center and scale all the predictors. I `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
+We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the laptop. I `step_dummy()`  all nominal predictors to encode them as categorical predictors. I also `step_normalize()` to center and scale all the predictors. I `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
 
 ## The models
 
