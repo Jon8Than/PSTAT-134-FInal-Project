@@ -1,6 +1,6 @@
 ---
 title: "PSTAT 134 - Final Project"
-author: "Jonathan Palada Rosal"
+author: "Jonathan Palada Rosal, Dana Lee"
 date: "`r Sys.Date()`"
 output: 
   html_document:
@@ -49,13 +49,13 @@ library(vip)
 ```
 
 ## Introduction
-
+Laptop computers are useful electronic devices that are primarily used for both entertainment and work purposes.A laptop allows you to take your work with you wherever you go, yet it may come with unnecessary features that not everyone may require. For this project, we aimed to create an optimal model that would allow us to forecast a price for a laptop that only includes the features that the customer desires. 
 
 ### (our topic)
-
+The data we will be using for this project is laptop specs and their prices. (https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list) Our dataset is from Kaggle with 23 variables and 1,000 observations.The dataset contains many variables, but we will focus on these 16 factors to make the prediction: Processor Brand, Processor Name, Processor Generation, Ram (GB), Ram Type, SSD (GB), HDD (GB), Operating System, Os_bit, Graphic Card (GB), Weight, Display Size, Warranty, Touchscreen, MSOffice, and Latest Price.
 
 ### How my model can be helpful
-
+A college student with an essay due every week will undoubtedly require a laptop with different features than a software developer who writes code every day. This model can be useful in assisting customers in selecting the features they want in their laptops and determining estimated prices based on what they require. They can also use the model to see what options are available if they have a specific budget in mind for their laptop.
 
 ### Reading in the dataset
 
@@ -87,6 +87,7 @@ laptop <- subset(laptop, warranty != "Missing")
 laptop <- subset(laptop, touchscreen != "Missing") 
 laptop <- subset(laptop, msoffice != "Missing") 
 laptop <- subset(laptop, latest_price != "Missing") # 415 observations now
+laptop$display_size <- as.numeric(laptop$display_size)
 ```
 
 ```{r}
@@ -94,10 +95,52 @@ summary(laptop)
 ```
 
 ### An overview of the dataset
+After using the read.csv function to read the dataset, we cleaned the data by removing observations containing missing values. We also removed two variables, brand and model, that were not required for our model, leaving a total of 415 observations with 16 variables.
+
+## Exploratory Data Analysis
+
+### Correlation between Display Size and Laptop Price
+```{r}
+plot(laptop$display_size,laptop$latest_price, pch = 19, col = "lightblue", xlab="Display size", ylab = "Latest Price ", main = "Correlation between Display Size and Latest Price")
+# Regression line
+abline(lm(laptop$display_size ~ laptop$latest_price), col = "red", lwd = 3)
+# Pearson correlation
+text(paste("Correlation:", round(cor(laptop$display_size, laptop$latest_price), 2)), x = 14, y = 300000)
+```
+
+EXPLANATION?????????
 
 
-## Explanatory Data Analysis
 
+### Price
+When purchasing laptops, one of the most important factors customers consider is price. The laptops users require vary greatly depending on their purpose and budget, and navigating the manufacturers' websites to find the model that perfectly fits can be overwhelming. Therefore, we decided to use the price as our responsive variable in this project in order to focus on selecting the best laptop.
+
+```{r}
+ggplot(laptop, aes(latest_price)) +
+   geom_histogram(bins = 60, color = "red") +
+   labs(title = "Range of Laptop Prices") +
+   xlim(20000, 400000)
+```
+According to the plot, the majority of laptops in our dataset are priced between $20,000 and $100,000. The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
+
+
+### Processor
+The key element that customers most closely associate with high-performing, quick technology is the computer processor. When comparing computers, the most important factor to consider is the computer processor speed. Making sure the processor works properly is critical to the longevity and functionality of each laptop.
+
+```{r}
+laptop %>%
+  ggplot(aes(reorder(processor_name, latest_price), latest_price)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "Processors",x = NULL)
+```
+Observing the box plot created above, the top 3 processors with the highest prices are GeForce RTX, Core i9, and M1. These are the top-ranked processors that are known for their high-speed, and video gamers who require advanced programs use them to deliver realistic graphics with incredibly fast performance or cutting-edge new AI features like NVIDIA DLSS and NVIDIA Broadcast.
+
+### Significant Features
+
+```{r}
+model <- lm(latest_price ~ ., data = laptop)
+summary(model)
+```
+
+The following features have a significant 
 
 ## Preparation for modeling
 
@@ -141,6 +184,8 @@ dim(ec_train) #331 obs. 18 columns
 ec_test <- testing(ec_split)
 dim(ec_test) #84 obs. 18 columns
 ```
+We split the data into a traditional 80% training and 20% testing as we felt that would be the best way to approach training and testing our models.
+
 
 ### Making the recipe and folds
 
@@ -460,7 +505,7 @@ rsq_comparisons
 
 Looking at the R-Squared of the four different models we see that the Boost model had the highest R-Squared and the tree model had the lowest R-Squared.
 
-### Summary
+### What can be improved?
 
 \
 
