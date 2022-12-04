@@ -51,17 +51,21 @@ library(vip)
 ## Introduction
 Laptop computers are useful electronic devices that are primarily used for both entertainment and work purposes.A laptop allows you to take your work with you wherever you go, yet it may come with unnecessary features that not everyone may require. For this project, we aimed to create an optimal model that would allow us to forecast a price for a laptop that only includes the features that the customer desires. 
 
-### (our topic)
+### Our Dataset
 The data we will be using for this project is laptop specs and their prices. (https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list) Our dataset is from Kaggle with 23 variables and 1,000 observations.The dataset contains many variables, but we will focus on these 16 factors to make the prediction: Processor Brand, Processor Name, Processor Generation, Ram (GB), Ram Type, SSD (GB), HDD (GB), Operating System, Os_bit, Graphic Card (GB), Weight, Display Size, Warranty, Touchscreen, MSOffice, and Latest Price.
+```{r, echo=FALSE}
+embed_youtube("bMDSikB6ooE")
+```
 
-### How my model can be helpful
+### How our model can be helpful
 A college student with an essay due every week will undoubtedly require a laptop with different features than a software developer who writes code every day. This model can be useful in assisting customers in selecting the features they want in their laptops and determining estimated prices based on what they require. They can also use the model to see what options are available if they have a specific budget in mind for their laptop.
 
-### Reading in the dataset
+In order for our model to be helpful, we need it to be accurate. Therefore, our goal will be to get a model that has an accuracy of over 70%. If we accomplish this we believe that our model will be accurate enough to produce helpful predictions to consumers.
+
+### Reading/Cleaning the dataset
 
 ```{r}
 laptop <- read.csv("Cleaned_Laptop_data.csv")
-head(laptop)
 laptop <- laptop %>%
   clean_names()
 laptop <- laptop[-19:-23] # removed the variables not needed for the study
@@ -88,59 +92,135 @@ laptop <- subset(laptop, touchscreen != "Missing")
 laptop <- subset(laptop, msoffice != "Missing") 
 laptop <- subset(laptop, latest_price != "Missing") # 415 observations now
 laptop$display_size <- as.numeric(laptop$display_size)
-laptop$latest_price <- laptop$latest_price/81.41
-```
-
-```{r}
-summary(laptop)
+laptop$latest_price <- laptop$latest_price/81.41 # Turn the currency into U.S. dollars
 ```
 
 ### An overview of the dataset
-After using the read.csv function to read the dataset, we cleaned the data by removing observations containing missing values. We also removed two variables, brand and model, that were not required for our model, leaving a total of 415 observations with 16 variables.
+
+```{r, echo=FALSE}
+head(laptop)
+```
+
+These are the variables we will be using in our dataset:
+
+```processor_brand``` : Processor Brand
+
+```processor_name``` : Processor Name
+
+```processor_gnrtn``` : Processor Generation
+
+```ram_gb``` : Random Access Memory in GB
+
+```ram_type``` : Random Access Memory type
+
+```ssd``` : Solid State Drive in GB
+
+```hdd``` : Hard Disk Drive in GB
+
+```os``` : Operating system
+
+```os_bit``` : Operating system bit
+
+```graphic_card_gb``` : Graphic Card in GB
+
+```weight``` : Weight of laptop in categories of: Casual, ThinNlight, Gaming
+
+```display_size``` : Size in inches
+
+```Warranty``` : Years of warranty after purchase
+
+```touchscreen``` : If it has a touchscreen feature
+
+```msoffice``` : If it has Microsoft office
+
+```{r, echo=FALSE}
+summary(laptop)
+```
+
+After using the read.csv function to read the dataset, we cleaned the data by removing observations containing missing values. We also removed two variables, brand and model, that were not required for our model, leaving a total of 415 observations with 16 variables. When looking at the summary we can conclude that most our variables are categorical.
 
 ## Exploratory Data Analysis
 
-### Correlation between Display Size and Laptop Price
-```{r}
+### Display Size
+
+![Fig 1. Size differences between laptops](images/laptop-screen-size-comparison.jpg){width="500"}
+
+Display size is one of the most important features that most consumers consider. The display size's range from 12.2 (inches) - 17.3 (inches). Some consumers may want a 12.2 for easier transportation. Other consumers may want a 17.3 for a bigger screen to see more details in visualizations. On average most students pick a display size between 13 and 15 inches. The perfect in between for students who need easy transport and a decently size screen.
+
+```{r, echo=FALSE}
 plot(laptop$display_size,laptop$latest_price, pch = 19, col = "lightblue", xlab="Display size", ylab = "Latest Price ", main = "Correlation between Display Size and Latest Price")
 # Regression line
 abline(lm(laptop$display_size ~ laptop$latest_price), col = "red", lwd = 3)
 # Pearson correlation
-text(paste("Correlation:", round(cor(laptop$display_size, laptop$latest_price), 2)), x = 14, y = 300000)
+text(paste("Correlation:", round(cor(laptop$display_size, laptop$latest_price), 2)), x = 12.75, y = 4000)
 ```
 
-Looking at the plot we can see that there is a 20% correlation between the price of the laptop and the display size. 
-
-
+Looking at the plot we can see that there is a 20% positive correlation between the price of the laptop and the display size. Therefore, if a consumer wants a bigger screen, you will most likely pay more for that bigger screen.
 
 ### Price
+
+![Fig 2. Amazon: Laptop Pricing](images/Pricing.jpeg){width="500"}
+
 When purchasing laptops, one of the most important factors customers consider is price. The laptops users require vary greatly depending on their purpose and budget, and navigating the manufacturers' websites to find the model that perfectly fits can be overwhelming. Therefore, we decided to use the price as our responsive variable in this project in order to focus on selecting the best laptop.
 
-```{r}
+```{r, echo=FALSE}
 ggplot(laptop, aes(latest_price)) +
    geom_histogram(bins = 60, color = "red") +
    labs(title = "Range of Laptop Prices")
 ```
-According to the plot, the majority of laptops in our dataset are priced between $20,000 and $100,000. The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
+
+According to the plot, the majority of laptops in our dataset are priced between \$250 and $4300. The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
 
 
 ### Processor
+
+![Fig 3. Intel Processor](images/Processor.jpg){width="300"}
+
 The key element that customers most closely associate with high-performing, quick technology is the computer processor. When comparing computers, the most important factor to consider is the computer processor speed. Making sure the processor works properly is critical to the longevity and functionality of each laptop.
 
-```{r}
+```{r, echo=FALSE}
 laptop %>%
   ggplot(aes(reorder(processor_name, latest_price), latest_price)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "Processors",x = NULL)
 ```
+
 Observing the box plot created above, the top 3 processors with the highest prices are GeForce RTX, Core i9, and M1. These are the top-ranked processors that are known for their high-speed, and video gamers who require advanced programs use them to deliver realistic graphics with incredibly fast performance or cutting-edge new AI features like NVIDIA DLSS and NVIDIA Broadcast.
 
-### Significant Features
+### Features Significantly Impacting Price
 
-```{r}
+![Fig 4. Specifications](images/Significant factors.jpg){width="350"}
+
+We have many different variables in our dataset. On top of those variables, there are many different options that a laptop can have. With so many different options, you can make a huge amount of possible combinations with so many options. Some of these options could increase the price significantly. Therefore we will make a model that can list which features significantly impact the price.
+
+```{r, echo=FALSE}
 model <- lm(latest_price ~ ., data = laptop)
 summary(model)
 ```
 
-The following features have a significant 
+The following features have a significantly impact the price:
+
+```Processor Brand``` : AMD, Intel
+
+```Processor Name``` : i3, i5, i7, GEForce GTX
+
+```Processor Generation``` : 8th
+
+```RAM GB``` : 4, 8, 32
+
+```RAM Type``` : DDR3
+
+```SSD GB``` : 1024, 2048
+
+```HHD GB``` : 512
+
+```Operating System``` : Mac
+
+```Weight``` : Gaming
+
+```Display Size``` : All sizes are significant to the price
+
+```Touchscreen``` : Having a touchscreen are significant to the price.
+
+If a consumer was considering any of these features, they will now know that these features could drastically increase or decrease the price of the laptop. These features could be considered a decision-maker for some consumers.
 
 ## Preparation for modeling
 
@@ -170,7 +250,7 @@ laptop <- laptop %>%
   mutate(msoffice = factor(msoffice))
 head(laptop)
 ```
-I mutated the variables by factoring the numerical predictors.
+We mutated the variables by factoring the numerical predictors.
 
 ### Splitting the data
 
@@ -184,7 +264,7 @@ dim(ec_train) #331 obs. 18 columns
 ec_test <- testing(ec_split)
 dim(ec_test) #84 obs. 18 columns
 ```
-We split the data into a traditional 80% training and 20% testing as we felt that would be the best way to approach training and testing our models.
+We split the data into  80% training and 20% testing as we felt that would be the best way to approach training and testing our models.
 
 
 ### Making the recipe and folds
@@ -200,13 +280,13 @@ ec_recipe <- recipe(latest_price ~ processor_brand + processor_name + processor_
 ec_folds <- vfold_cv(ec_train, strata = latest_price, v = 10, repeats = 5)
 ```
 
-We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the laptop. I `step_dummy()`  all nominal predictors to encode them as categorical predictors. I also `step_normalize()` to center and scale all the predictors. I `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
+We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. We decided to leave them out because we wanted the prediction to be completely based on the features of the laptop. We `step_dummy()`  all nominal predictors to encode them as categorical predictors. We also `step_normalize()` to center and scale all the predictors. We `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
 
 ## The models
 
 ### Ridge Regression
 
-The first model I decided to create was a Ridge Regression Model. Ridge regression is one of the alternative approaches to modeling. Ridge is one of the main types of the Regularization approach. The goal of the Regularization approach is to shrink the coefficient estimates toward zero, similar to least squares. Ridge minimizes the sum of squared residuals and $\lambda * slope^2$.
+The first model we decided to create was a Ridge Regression Model. Ridge regression is one of the alternative approaches to modeling. Ridge is one of the main types of the Regularization approach. The goal of the Regularization approach is to shrink the coefficient estimates toward zero, similar to least squares. Ridge minimizes the sum of squared residuals and $\lambda * slope^2$.
 
 ```{r, message=FALSE, warning=FALSE}
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
@@ -264,7 +344,7 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Lasso Regression
 
-The second model I decided to create was a Lasso Regression Model. Lasso regression is also one of the alternative approaches to modeling. Like Ridge, Lasso is one of the main types of the Regularization approach.The difference is Lasso minimizes the sum of squared residuals and $\lambda * |slope|$.
+The second model we decided to create was a Lasso Regression Model. Lasso regression is also one of the alternative approaches to modeling. Like Ridge, Lasso is one of the main types of the Regularization approach.The difference is Lasso minimizes the sum of squared residuals and $\lambda * |slope|$.
 
 ```{r, message=FALSE, warning=FALSE}
 lasso_spec <-
@@ -288,7 +368,7 @@ tune_res_lasso
 autoplot(tune_res_lasso)
 ```
 
-In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots does not seem to be as smooth as the ridge model.
+In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots seem to increase/decrease quickly compared to the Ridge Model.
 
 ```{r}
 Lasso_RMSE <- collect_metrics(tune_res_lasso) %>%
@@ -318,7 +398,7 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Boosted Model
 
-The third model I created was a boosted tree model. A boosted model builds a weak decision tree that has low predictive accuracy. Then the model goes through the process of sequentially improving previous decision trees. Doing this, slowly reduces the bias at each step without drastically increasing the variance.
+The third model we created was a boosted tree model. A boosted model builds a weak decision tree that has low predictive accuracy. Then the model goes through the process of sequentially improving previous decision trees. Doing this, slowly reduces the bias at each step without drastically increasing the variance.
 ```{r, message=FALSE, warning=FALSE}
 boost_spec <- boost_tree() %>%
   set_engine("xgboost") %>%
@@ -342,7 +422,7 @@ boost_tune_res <- tune_grid(
 autoplot(boost_tune_res)
 ```
 
-In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The tree plots here seem to go straight up and then flatten out, never changing it's slope again.
+In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The boost rmse plot decreases significantly but then levels out around the 278 mark. The rsq plot does the same thing but increases and levels out around the 0.765 mark.
 
 
 ```{r}
@@ -372,7 +452,7 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Decision - Tree model
 
-The fourth and final model I decided to make is a decision tree model. A decision tree model puts the data into classified chunks. Then based on the data from those chunks, the model does it's best to predict the outcome.
+The fourth and final model we decided to make is a decision tree model. A decision tree model puts the data into classified chunks. Then based on the data from those chunks, the model does it's best to predict the outcome.
 ```{r, message=FALSE, warning=FALSE}
 tree_spec <-decision_tree() %>%
   set_engine("rpart")
@@ -397,7 +477,7 @@ tune_res_tree <- tune_grid(
 autoplot(tune_res_tree)
 ```
 
-In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the lasso plots. The reasoning is the plots are not smooth, and seem to have sudden changes of slope.
+In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the lasso plots. The difference is the plots are not smooth, and seem to have sudden changes of slope.
 
 ```{r}
 Tree_RMSE <- collect_metrics(tune_res_tree) %>%
@@ -418,7 +498,6 @@ class_tree_final_fit %>%
 ```
 
 The tree plot asks specific questions. These questions can only be answered yes or no. 
-
 ```{r}
 Tree_Prediction <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
 Tree_Prediction <- bind_cols(Tree_Prediction, ec_test %>% dplyr::select(latest_price))
@@ -432,7 +511,7 @@ Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_test) %>%
 
 Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
-## Conclusions
+## Results
 
 Comparison of the four different models: 
 We will compare the four different models in this by these factors:
@@ -442,14 +521,14 @@ We will compare the four different models in this by these factors:
 
 ### Graphs
 
-```{r}
+```{r, echo=FALSE}
 figure <- ggarrange(Ridge_Graph, Lasso_Graph, Boost_Graph,Tree_Graph,
                     labels = c("Ridge", "Lasso", "Boost","Tree"),
                     ncol = 2, nrow = 2)
 figure
 ```
 
-In the plots the dotted line represents where the points would be if the actual price of the vehicle was the same number as the prediction. Looking at the plots I would say that the Boost has the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
+In the plots the dotted line represents where the points would be if the actual price of the laptop was the same number as the prediction. Looking at the plots I would say that the Boost has the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
 
 ### RMSE & RSQ (Training Set)
 
@@ -460,8 +539,8 @@ head(Ridge_RMSE)
 
 Looking at the mean and standard we get that 
 Ridge has the following values:
-```RMSE``` : mean = 18,922 & standard error = 2013
-```RSQ``` : mean = 0.7994 & standard error = 0.03249
+```RMSE``` : mean = 269 & standard error = 9.37
+```RSQ``` : mean = 0.777 & standard error = 0.0149
 
 Lasso
 ```{r}
@@ -469,8 +548,8 @@ head(Lasso_RMSE)
 ```
 Looking at the mean and standard we get that 
 Lasso has the following values:
-```RMSE``` : mean = 20,886 & standard error = 2544
-```RSQ``` : mean = 0.715 & standard error = 0.04805
+```RMSE``` : mean = 271 & standard error = 9.34
+```RSQ``` : mean = 0.774 & standard error = 0.0143
 
 Boost
 ```{r}
@@ -478,8 +557,8 @@ head(Boost_RMSE)
 ```
 Looking at the mean and standard we get that 
 Boost has the following values:
-```RMSE``` : mean = 23,443 & standard error = 2127
-```RSQ``` : mean = 0.8232 & standard error = 0.04482
+```RMSE``` : mean = 288 & standard error = 9.84
+```RSQ``` : mean = 0.750 & standard error = 0.0150
 
 Tree
 ```{r}
@@ -487,14 +566,14 @@ head(Tree_RMSE)
 ```
 Looking at the mean and standard we get that 
 Tree has the following values:
-```RMSE``` : mean = 25,233 & standard error = 2102
-```RSQ``` : mean = 0.584 & standard error = 0.0399
+```RMSE``` : mean = 332 & standard error = 11.5
+```RSQ``` : mean = 0.701 & standard error = 0.0151
 
-Looking at all the model's rmse and rsq, Boost would be the best model to test on the Testing Set. Boost has the lowest RMSE and highest RSQ.
+Looking at all the model's rmse and rsq, Ridge would be the best model to test on the Testing Set. Boost has the lowest RMSE and highest RSQ.
 
 ### R-Squared for (Testing Set)
 
-```{r}
+```{r, echo=FALSE}
 rsq_comparisons <- bind_rows(Ridge_Accuracy, Lasso_Accuracy, Boost_Accuracy, Tree_Accuracy) %>% 
   tibble() %>% mutate(model = c("Ridge", "Lasso", "Boost", "Tree")) %>% 
   dplyr::select(model, .estimate) %>%
@@ -503,9 +582,17 @@ rsq_comparisons <- bind_rows(Ridge_Accuracy, Lasso_Accuracy, Boost_Accuracy, Tre
 rsq_comparisons
 ```
 
-Looking at the R-Squared of the four different models we see that the Boost model had the highest R-Squared and the tree model had the lowest R-Squared.
+We combine the predictions of our model with the actual values of the testing set. After doing that we can see the R-Squared value which will tell us the accuracy of the models we used. Looking at the R-Squared of the four different models we see that the Boost model had the highest R-Squared and the tree model had the lowest R-Squared.
+
+## Conclusions:
+
+Exploring the dataset we found some variables that significantly that affect the price of the laptop. After we decided to produce four different models to predict the price. These models were: Ridge, Lasso, Boost, and Tree.
+
+Before analyzing the results of the rmse and rsq from the training set, we thought the tree model would do best because most of our data was categorical. We believe the reason why the tree model did poorly was because we think the tree model is more successful when the variable we are predicting is categorical also. Lasso and Ridge came out better than tree, because Lasso and Ridge are more flexible than the other two models we fitted. Boost came out on top because it reduced the bias the best without significantly increasing the variance.
+
+This research shows Boost would be the best model. This model is the best at predicting the price of a laptop, based on the features the laptop has. Predicting with this model, will give the customer a price with around 77% accuracy. The goal of our project was achieved because we got a model with an accuracy over 70%.
 
 ### What can be improved?
 
-\
+An improvement that can be made for this project is to replace the missing details for most of the laptops. After cleaning the data we lost more than half of the data. If that missing data was filled with updated information then we could have used all of the data. Using the whole dataset would of most likely improved the accuracy of the model because it would of had more observations to train on.
 
