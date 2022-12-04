@@ -88,6 +88,7 @@ laptop <- subset(laptop, touchscreen != "Missing")
 laptop <- subset(laptop, msoffice != "Missing") 
 laptop <- subset(laptop, latest_price != "Missing") # 415 observations now
 laptop$display_size <- as.numeric(laptop$display_size)
+laptop$latest_price <- laptop$latest_price/81.41
 ```
 
 ```{r}
@@ -108,7 +109,7 @@ abline(lm(laptop$display_size ~ laptop$latest_price), col = "red", lwd = 3)
 text(paste("Correlation:", round(cor(laptop$display_size, laptop$latest_price), 2)), x = 14, y = 300000)
 ```
 
-EXPLANATION?????????
+Looking at the plot we can see that there is a 20% correlation between the price of the laptop and the display size. 
 
 
 
@@ -118,8 +119,7 @@ When purchasing laptops, one of the most important factors customers consider is
 ```{r}
 ggplot(laptop, aes(latest_price)) +
    geom_histogram(bins = 60, color = "red") +
-   labs(title = "Range of Laptop Prices") +
-   xlim(20000, 400000)
+   labs(title = "Range of Laptop Prices")
 ```
 According to the plot, the majority of laptops in our dataset are priced between $20,000 and $100,000. The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
 
