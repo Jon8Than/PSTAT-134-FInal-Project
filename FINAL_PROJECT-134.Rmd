@@ -2,15 +2,12 @@
 title: "PSTAT 134 - Final Project"
 author: "Jonathan Palada Rosal, Dana Lee"
 date: "`r Sys.Date()`"
-output: 
+output:
+  word_document: default
   html_document:
-    toc: true
-    toc_float: true
-    code_folding: show
-  pdf_document:
-    latex_engine: pdflatex
+    df_print: paged
 fontfamily: palatino
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
@@ -72,9 +69,9 @@ laptop <- laptop[-19:-23] # removed the variables not needed for the study
 laptop <- laptop[-1:-2] # removed the brand and model variable
 ```
 
+Removed the variables that are not needed for the study. 
+
 ```{r}
-#laptop <- subset(laptop, brand != "Missing") 
-#laptop <- subset(laptop, model != "Missing") 
 laptop <- subset(laptop, processor_brand != "Missing")
 laptop <- subset(laptop, processor_name != "Missing") 
 laptop <- subset(laptop, processor_gnrtn != "Missing") 
@@ -94,6 +91,40 @@ laptop <- subset(laptop, latest_price != "Missing") # 415 observations now
 laptop$display_size <- as.numeric(laptop$display_size)
 laptop$latest_price <- laptop$latest_price/81.41 # Turn the currency into U.S. dollars
 ```
+
+Deleted any rows with missing information. Also converted the price variable into U.S. dollars.
+
+```{r}
+table(laptop$ram_gb) 
+laptop['ram_gb'][laptop['ram_gb'] == '16 GB GB'] <- 16
+laptop['ram_gb'][laptop['ram_gb'] == '32 GB GB'] <- 32
+laptop['ram_gb'][laptop['ram_gb'] == '4 GB GB'] <- 4
+laptop['ram_gb'][laptop['ram_gb'] == '8 GB GB'] <- 8
+laptop$ram_gb <- as.numeric(laptop$ram_gb)
+```
+
+```{r}
+table(laptop$ssd)
+laptop['ssd'][laptop['ssd'] == '0 GB'] <- 0
+laptop['ssd'][laptop['ssd'] == '1024 GB'] <- 1024
+laptop['ssd'][laptop['ssd'] == '128 GB'] <- 128
+laptop['ssd'][laptop['ssd'] == '2048 GB'] <- 2048
+laptop['ssd'][laptop['ssd'] == '256 GB'] <- 256
+laptop['ssd'][laptop['ssd'] == '32 GB'] <- 32
+laptop['ssd'][laptop['ssd'] == '512 GB'] <- 512
+laptop$ssd <- as.numeric(laptop$ssd)
+```
+
+```{r}
+table(laptop$hdd)
+laptop['hdd'][laptop['hdd'] == '0 GB'] <- 0
+laptop['hdd'][laptop['hdd'] == '1024 GB'] <- 1024
+laptop['hdd'][laptop['hdd'] == '2048 GB'] <- 2048
+laptop['hdd'][laptop['hdd'] == '512 GB'] <- 512
+laptop$hdd <- as.numeric(laptop$hdd)
+```
+
+We made the variables that had numbers as values into actual numerical data.
 
 ### An overview of the dataset
 
@@ -169,21 +200,29 @@ ggplot(laptop, aes(latest_price)) +
    labs(title = "Range of Laptop Prices")
 ```
 
-According to the plot, the majority of laptops in our dataset are priced between \$250 and $4300. The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
+According to the plot, the majority of laptops in our dataset are priced between \$250 and \$4300. Majority of the laptops range from \$400 - \$1250. A reason why most laptops are priced within this range is because this range is the typical budget for most buyers.  The higher-priced laptops are probably larger and heavier and have far more sophisticated features.
 
 
 ### Processor
 
 ![Fig 3. Intel Processor](images/Processor.jpg){width="300"}
 
-The key element that customers most closely associate with high-performing, quick technology is the computer processor. When comparing computers, the most important factor to consider is the computer processor speed. Making sure the processor works properly is critical to the longevity and functionality of each laptop.
+The key element that customers most closely associate with high-performing, quick technology is the computer processor. When comparing computers, the most important factor to consider is the computer processor speed. Making sure the processor works properly is critical to the longevity and functionality of each laptop. Our processor variable contains CPU's, GPU's, APU's and Graphic Cards. 
+```CPU``` - Designed for general purpose tasks, most common applications, and is very compute intensive
+
+```GPU``` - Designed for specialized tasks, such as graphics and video, most visual applications, and data processing in parallel.
+
+```APU``` - Combining CPU & GPU elements into a single architecture to form a single chip. As a result they consume less power than a CPU + GPU resulting in a better battery life for the laptop. 
+
+```Graphic Card``` - Contains one or two GPUs, a cooling system, dedicated RAM, and a dedicated source of power. Graphic cards are designed for being in charge of generating images and videos to display then on an output device, such as a monitor/tv.
+
 
 ```{r, echo=FALSE}
 laptop %>%
   ggplot(aes(reorder(processor_name, latest_price), latest_price)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "Processors",x = NULL)
 ```
 
-Observing the box plot created above, the top 3 processors with the highest prices are GeForce RTX, Core i9, and M1. These are the top-ranked processors that are known for their high-speed, and video gamers who require advanced programs use them to deliver realistic graphics with incredibly fast performance or cutting-edge new AI features like NVIDIA DLSS and NVIDIA Broadcast.
+Observing the box plot created above, the top 3 processors with the highest prices are GeForce RTX, Core i9, and M1. These are the top-ranked processors that are known for their high-speed, and video gamers who require advanced programs use them to deliver realistic graphics with incredibly fast performance or cutting-edge new AI features like NVIDIA DLSS and NVIDIA Broadcast. A customer with a lower budget should purchase a laptop with an APU since it can give a great price to performance ratio. Based on this plot we can see that the faster the processor, the more expensive it is.
 
 ### Features Significantly Impacting Price
 
@@ -196,29 +235,29 @@ model <- lm(latest_price ~ ., data = laptop)
 summary(model)
 ```
 
-The following features have a significantly impact the price:
+Going by a significance level of 0.05, the following features have a significantly impact the price:
 
 ```Processor Brand``` : AMD, Intel
 
-```Processor Name``` : i3, i5, i7, GEForce GTX
+```Processor Name``` : The type of processor is significant to the price
 
-```Processor Generation``` : 8th
+```Processor Generation``` : 8th generation is significant to the price
 
-```RAM GB``` : 4, 8, 32
+```RAM GB``` : RAM is significant to the price
 
 ```RAM Type``` : DDR3
 
-```SSD GB``` : 1024, 2048
+```SSD GB``` : SSD is significant to the price
 
 ```HHD GB``` : 512
 
-```Operating System``` : Mac
+```Operating System``` : The Operating System is significant to the price.
 
-```Weight``` : Gaming
+```Weight``` : The weight is significant to the price.
 
 ```Display Size``` : All sizes are significant to the price
 
-```Touchscreen``` : Having a touchscreen are significant to the price.
+```Touchscreen``` : Having a touchscreen is significant to the price.
 
 If a consumer was considering any of these features, they will now know that these features could drastically increase or decrease the price of the laptop. These features could be considered a decision-maker for some consumers.
 
@@ -232,23 +271,41 @@ The following models conducted were done in this order and procedure:
 ### Preparing the data
 
 ```{r}
+par(mfrow=c(2,2))
+laptopbc <- laptop
+hist(laptop$latest_price, col="light blue", xlab = "Price", main="Original Data")
+bcTransform <- boxcox(laptop$latest_price~ ., data = laptop) 
+lambda=bcTransform$x[which(bcTransform$y == max(bcTransform$y))]
+laptopbc$latest_price <- (1/lambda)*(laptop$latest_price^lambda-1)
+hist(laptopbc$latest_price, col="light blue", xlab="Price", main="Box-Cox transformation")  #looks the most symmetric and normally distributed
+```
+
+We transformed the `laptop_price` variable by performing a Box-Cox transformation. This transformation should make the data look more like a normal distribution. Looking at the 95% confidence interval for the true $\lambda$, we could see that the suggested transformations were $Y_{t} = \frac{1}{\lambda} (X_{t}^{\lambda} - 1)$. When doing a Box-Cox transformation we get a more normal like- distribution.
+
+```{r}
 laptop <- laptop %>%
- # mutate(brand = factor(brand)) %>%
-  #mutate(model = factor(model)) %>%
   mutate(processor_brand = factor(processor_brand)) %>%
   mutate(processor_name = factor(processor_name)) %>%
   mutate(processor_gnrtn = factor(processor_gnrtn)) %>%
-  mutate(ram_gb = factor(ram_gb)) %>%
   mutate(ram_type  = factor(ram_type)) %>%
-  mutate(ssd = factor(ssd)) %>%
-  mutate(hdd = factor(hdd)) %>%
   mutate(os = factor(os)) %>%
   mutate(os_bit = factor(os_bit)) %>%
   mutate(weight = factor(weight)) %>%
-  mutate(display_size = factor(display_size)) %>%
   mutate(touchscreen = factor(touchscreen)) %>%
   mutate(msoffice = factor(msoffice))
 head(laptop)
+
+laptopbc <- laptopbc %>%
+  mutate(processor_brand = factor(processor_brand)) %>%
+  mutate(processor_name = factor(processor_name)) %>%
+  mutate(processor_gnrtn = factor(processor_gnrtn)) %>%
+  mutate(ram_type  = factor(ram_type)) %>%
+  mutate(os = factor(os)) %>%
+  mutate(os_bit = factor(os_bit)) %>%
+  mutate(weight = factor(weight)) %>%
+  mutate(touchscreen = factor(touchscreen)) %>%
+  mutate(msoffice = factor(msoffice))
+head(laptopbc)
 ```
 We mutated the variables by factoring the numerical predictors.
 
@@ -263,8 +320,16 @@ ec_train <- training(ec_split)
 dim(ec_train) #331 obs. 18 columns
 ec_test <- testing(ec_split)
 dim(ec_test) #84 obs. 18 columns
+
+ec_splitbc <- laptopbc %>%
+  initial_split(prop = 0.80, strata = "latest_price")
+
+ec_trainbc <- training(ec_splitbc)
+dim(ec_trainbc) #331 obs. 18 columns
+ec_testbc <- testing(ec_splitbc)
+dim(ec_testbc) #84 obs. 18 columns
 ```
-We split the data into  80% training and 20% testing as we felt that would be the best way to approach training and testing our models.
+We split the data into  80% training and 20% testing as we felt that would be the best way to approach training and testing our models. We had to make two different splits. For ridge and lasso, the engines we use for those models already find the most optimal lambda and perform a transformation while predicting. For the boost and tree models we had to perform the transformations manually.
 
 
 ### Making the recipe and folds
@@ -272,12 +337,21 @@ We split the data into  80% training and 20% testing as we felt that would be th
 ```{r}
 ec_recipe <- recipe(latest_price ~ processor_brand + processor_name + processor_gnrtn + ram_gb + ram_type + ssd + hdd + os + os_bit + graphic_card_gb + weight + display_size + warranty + touchscreen + msoffice, data = ec_train) %>%
   step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_nominal_predictors()) %>%
+  step_normalize(all_predictors()) %>%
+  step_novel(all_nominal_predictors())
+               
+
+ec_folds <- vfold_cv(ec_train, strata = latest_price, v = 10, repeats = 5)
+
+ec_recipebc <- recipe(latest_price ~ processor_brand + processor_name + processor_gnrtn + ram_gb + ram_type + ssd + hdd + os + os_bit + graphic_card_gb + weight + display_size + warranty + touchscreen + msoffice, data = ec_trainbc) %>%
+  step_dummy(all_nominal_predictors()) %>%
   step_normalize(all_predictors()) %>%
   step_novel(all_nominal_predictors()) %>%
   step_zv(all_nominal_predictors())
                
 
-ec_folds <- vfold_cv(ec_train, strata = latest_price, v = 10, repeats = 5)
+ec_foldsbc <- vfold_cv(ec_trainbc, strata = latest_price, v = 10, repeats = 5)
 ```
 
 We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. We decided to leave them out because we wanted the prediction to be completely based on the features of the laptop. We `step_dummy()`  all nominal predictors to encode them as categorical predictors. We also `step_normalize()` to center and scale all the predictors. We `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
@@ -312,7 +386,7 @@ tune_res
 autoplot(tune_res)
 ```
 
-In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also.
+In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. We are using the glmnet engine so it will perform the most optimal transformation for the model.
 
 ```{r}
 Ridge_RMSE <- collect_metrics(tune_res) %>%
@@ -331,6 +405,8 @@ ridge_final_fit <- fit(ridge_final, data = ec_train)
 
 Ridge_Prediction <- predict(ridge_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
 Ridge_Prediction <- bind_cols(Ridge_Prediction, ec_test %>% dplyr::select(latest_price))
+Ridge_Prediction <- (1/lambda)*(Ridge_Prediction^lambda-1) #To make the values the same as the boost and tree models
+
 
 Ridge_Graph <- Ridge_Prediction %>%
   ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha = 1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
@@ -339,7 +415,7 @@ Ridge_Accuracy <- augment(ridge_final_fit, new_data = ec_test) %>%
   rsq(truth = latest_price, estimate = .pred)
 ```
 
-Here we prepare the predictions, graphs, and plots, for comparison at the end.
+Here we prepare the predictions, graphs, and plots, for comparison at the end. We converted the predictions and actual values into the same scale as the boxcox data so it will be easier to compare to the boost and tree models.
 
 
 ### Lasso Regression
@@ -368,7 +444,7 @@ tune_res_lasso
 autoplot(tune_res_lasso)
 ```
 
-In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots seem to increase/decrease quickly compared to the Ridge Model.
+In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots seem to increase/decrease quickly compared to the Ridge Model. We are also using the glmnet engine here as well.
 
 ```{r}
 Lasso_RMSE <- collect_metrics(tune_res_lasso) %>%
@@ -386,6 +462,7 @@ lasso_final_fit <- fit(lasso_final, data = ec_train)
 
 Lasso_Prediction <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
 Lasso_Prediction <- bind_cols(Lasso_Prediction, ec_test %>% dplyr::select(latest_price))
+Lasso_Prediction <- (1/lambda)*(Lasso_Prediction^lambda-1) #To make the values the same as the boost and tree models
 
 Lasso_Graph <- Lasso_Prediction %>%
   ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
@@ -394,7 +471,7 @@ Lasso_Accuracy <- augment(lasso_final_fit, new_data = ec_test) %>%
   rsq(truth = latest_price, estimate = .pred)
 ```
 
-Here we prepare the predictions, graphs, and plots, for comparison at the end.
+Here we prepare the predictions, graphs, and plots, for comparison at the end. We also converted the predictions and actual values into the same scale as the boxcox data so it will be easier to compare to the boost and tree models.
 
 ### Boosted Model
 
@@ -407,7 +484,7 @@ boost_spec <- boost_tree() %>%
 boost_wf <- workflow() %>%
   add_model(boost_spec %>%
   set_args(trees = tune())) %>%
-  add_recipe(ec_recipe)
+  add_recipe(ec_recipebc)
 
 set.seed(12)
 
@@ -415,15 +492,14 @@ boost_grid <- grid_regular(trees(range = c(10, 2000)), levels = 50)
 
 boost_tune_res <- tune_grid(
   boost_wf,
-  resamples = ec_folds,
+  resamples = ec_foldsbc,
   grid = boost_grid,
 )
 
 autoplot(boost_tune_res)
 ```
 
-In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The boost rmse plot decreases significantly but then levels out around the 278 mark. The rsq plot does the same thing but increases and levels out around the 0.765 mark.
-
+In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The boost rmse plot decreases significantly but then levels out around the 60th tree. The rsq does the exact same thing but increases instead.
 
 ```{r}
 Boost_RMSE <- collect_metrics(boost_tune_res) %>% 
@@ -436,15 +512,15 @@ We collect the metrics of our regression tune and look at the mean and standard 
 ```{r}
 best_boost_final <- select_best(boost_tune_res)
 best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
-best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
+best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_trainbc)
 
-Boost_Prediction <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-latest_price))
-Boost_Prediction <- bind_cols(Boost_Prediction, ec_test %>% dplyr::select(latest_price))
+Boost_Prediction <- predict(best_boost_final_model_fit, new_data = ec_testbc %>% dplyr::select(-latest_price))
+Boost_Prediction <- bind_cols(Boost_Prediction, ec_testbc %>% dplyr::select(latest_price))
 
 Boost_Graph <- Boost_Prediction %>%
   ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-Boost_Accuracy <- augment(best_boost_final_model_fit, new_data = ec_test) %>%
+Boost_Accuracy <- augment(best_boost_final_model_fit, new_data = ec_testbc) %>%
   rsq(truth = latest_price, estimate = .pred)
 ```
 
@@ -462,7 +538,7 @@ class_tree_spec <- tree_spec %>%
   
 class_tree_wf <- workflow() %>%
   add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
-  add_recipe(ec_recipe)
+  add_recipe(ec_recipebc)
 
 set.seed(12)
 
@@ -470,14 +546,14 @@ param_grid <- grid_regular(cost_complexity(range = c(-5, 5)), levels = 50)
 
 tune_res_tree <- tune_grid(
   class_tree_wf,
-  resamples = ec_folds,
+  resamples = ec_foldsbc,
   grid = param_grid,
 )
 
 autoplot(tune_res_tree)
 ```
 
-In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the lasso plots. The difference is the plots are not smooth, and seem to have sudden changes of slope.
+In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the ridge plots. The difference is the plots are not smooth, and seem to have sudden changes of slope.
 
 ```{r}
 Tree_RMSE <- collect_metrics(tune_res_tree) %>%
@@ -490,7 +566,7 @@ We collect the metrics of our regression tune and look at the mean and standard 
 ```{r}
 best_complexity <- select_best(tune_res_tree)
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
-class_tree_final_fit <- fit(class_tree_final, data = ec_train)
+class_tree_final_fit <- fit(class_tree_final, data = ec_trainbc)
 
 class_tree_final_fit %>%
   extract_fit_engine() %>%
@@ -499,13 +575,13 @@ class_tree_final_fit %>%
 
 The tree plot asks specific questions. These questions can only be answered yes or no. 
 ```{r}
-Tree_Prediction <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-latest_price))
-Tree_Prediction <- bind_cols(Tree_Prediction, ec_test %>% dplyr::select(latest_price))
+Tree_Prediction <- predict(class_tree_final_fit, new_data = ec_testbc %>% dplyr::select(-latest_price))
+Tree_Prediction <- bind_cols(Tree_Prediction, ec_testbc %>% dplyr::select(latest_price))
 
 Tree_Graph <- Tree_Prediction %>%
   ggplot(aes(x=.pred, y=latest_price)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_test) %>%
+Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_testbc) %>%
   rsq(truth = latest_price, estimate = .pred)
 ```
 
@@ -516,7 +592,7 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 Comparison of the four different models: 
 We will compare the four different models in this by these factors:
 - Prediction Graphs
-- RMSE & RSQ (R-Squared) from Training Set
+- RSQ (R-Squared) from Training Set
 - RSQ from Testing Set
 
 ### Graphs
@@ -530,46 +606,42 @@ figure
 
 In the plots the dotted line represents where the points would be if the actual price of the laptop was the same number as the prediction. Looking at the plots I would say that the Boost has the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
 
-### RMSE & RSQ (Training Set)
+### RSQ (Training Set)
 
 Ridge
-```{r}
+```{r, echo=FALSE}
 head(Ridge_RMSE)
 ```
 
 Looking at the mean and standard we get that 
 Ridge has the following values:
-```RMSE``` : mean = 269 & standard error = 9.37
-```RSQ``` : mean = 0.777 & standard error = 0.0149
+```RSQ``` : mean = 0.757 & standard error = 0.0127
 
 Lasso
-```{r}
+```{r, echo=FALSE}
 head(Lasso_RMSE)
 ```
 Looking at the mean and standard we get that 
 Lasso has the following values:
-```RMSE``` : mean = 271 & standard error = 9.34
-```RSQ``` : mean = 0.774 & standard error = 0.0143
+```RSQ``` : mean = 0.756 & standard error = 0.0129
 
 Boost
-```{r}
+```{r, echo=FALSE}
 head(Boost_RMSE)
 ```
 Looking at the mean and standard we get that 
 Boost has the following values:
-```RMSE``` : mean = 288 & standard error = 9.84
-```RSQ``` : mean = 0.750 & standard error = 0.0150
+```RSQ``` : mean = 0.872 & standard error = 0.00966
 
 Tree
-```{r}
+```{r, echo=FALSE}
 head(Tree_RMSE)
 ```
 Looking at the mean and standard we get that 
 Tree has the following values:
-```RMSE``` : mean = 332 & standard error = 11.5
-```RSQ``` : mean = 0.701 & standard error = 0.0151
+```RSQ``` : mean = 0.790 & standard error = 0.0153
 
-Looking at all the model's rmse and rsq, Ridge would be the best model to test on the Testing Set. Boost has the lowest RMSE and highest RSQ.
+Looking at all the model's rsq, Boost would be the best model to test on the Testing Set. Boost has the highest RSQ mean and the lowest standard error.
 
 ### R-Squared for (Testing Set)
 
@@ -588,11 +660,23 @@ We combine the predictions of our model with the actual values of the testing se
 
 Exploring the dataset we found some variables that significantly that affect the price of the laptop. After we decided to produce four different models to predict the price. These models were: Ridge, Lasso, Boost, and Tree.
 
-Before analyzing the results of the rmse and rsq from the training set, we thought the tree model would do best because most of our data was categorical. We believe the reason why the tree model did poorly was because we think the tree model is more successful when the variable we are predicting is categorical also. Lasso and Ridge came out better than tree, because Lasso and Ridge are more flexible than the other two models we fitted. Boost came out on top because it reduced the bias the best without significantly increasing the variance.
+Before analyzing the results of the rsq from the training set, we thought the tree model would do best because most of our data was categorical. Based on the results, we can say that the tree model performed well. However, boost came out on top as the highest accuracy. Boost came out on top because it reduced the bias the best without significantly increasing the variance. The lasso and ridge models performed worse than the tree and boost models.
 
-This research shows Boost would be the best model. This model is the best at predicting the price of a laptop, based on the features the laptop has. Predicting with this model, will give the customer a price with around 77% accuracy. The goal of our project was achieved because we got a model with an accuracy over 70%.
+This research shows Boost would be the best model. This model is the best at predicting the price of a laptop, based on the features the laptop has. Predicting with this model, will give the customer a price with around 90% accuracy. The goal of our project was achieved because we got a model with an accuracy over 70%.
 
-### What can be improved?
+Although our tree model didn't have the best accuracy, it can be the most useful model because it offers a solution for every distinct criterion that must be considered when looking for the best laptop. Customers can use the tree model to determine what features to look for based on the yes/no responses for each step of the tree, making it convenient to identify all required features. The tree model is simple to understand and interpret, and the results are straightforward. Since the tree model can be used for both classification and regression models and can accommodate both categorical and numerical data, it can be the most useful model for our original dataset, which contains both categorical and numerical variables. 
+
+In conclusion, the boost model performed with the highest accuracy but we would recommend our tree model. The tree model does not have a high accuracy, like the boost, however it is still over 70%. We think that the usefulness of the tree model overshadows the decrease in accuracy.  
+
+### What we improved on?
+
+After talking to the professor during our presentation he recommended some changes we should do to improve our project. One tweak we made was to change all our GB variables into numerical. Before the change, our GB variables were categorical. In order to do this change we deleted the GB part in the values then used the `as.numeric()` function to convert it to numeric. 
+
+The second change we made was to box-cox our response variable. Before, only lasso and ridge were being transformed because of the glmnet engine we used for those models. However, the boost and tree models were using the original data. So we transformed the data for the boost and tree models in order to get a higher accuracy model. 
+
+After doing both of these changes are boost and tree model's accuracy increased significantly while our lasso and ridge model's accuracy slightly decreased.
+
+### What can still be improved?
 
 An improvement that can be made for this project is to replace the missing details for most of the laptops. After cleaning the data we lost more than half of the data. If that missing data was filled with updated information then we could have used all of the data. Using the whole dataset would of most likely improved the accuracy of the model because it would of had more observations to train on.
 
