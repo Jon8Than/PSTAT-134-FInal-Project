@@ -3,9 +3,10 @@ title: "PSTAT 134 - Final Project"
 author: "Jonathan Palada Rosal, Dana Lee"
 date: "`r Sys.Date()`"
 output:
-  word_document: default
   html_document:
     df_print: paged
+  pdf_document: default
+  word_document: default
 fontfamily: palatino
 editor_options:
   chunk_output_type: console
@@ -46,7 +47,7 @@ library(vip)
 ```
 
 ## Introduction
-Laptop computers are useful electronic devices that are primarily used for both entertainment and work purposes.A laptop allows you to take your work with you wherever you go, yet it may come with unnecessary features that not everyone may require. For this project, we aimed to create an optimal model that would allow us to forecast a price for a laptop that only includes the features that the customer desires. 
+Laptop computers are useful electronic devices that are primarily used for both entertainment and work purposes. A laptop allows you to take your work with you wherever you go, yet it may come with unnecessary features that not everyone may require. For this project, we aimed to create an optimal model that would allow us to forecast a price for a laptop that only includes the features that the customer desires. 
 
 ### Our Dataset
 The data we will be using for this project is laptop specs and their prices. (https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list) Our dataset is from Kaggle with 23 variables and 1,000 observations.The dataset contains many variables, but we will focus on these 16 factors to make the prediction: Processor Brand, Processor Name, Processor Generation, Ram (GB), Ram Type, SSD (GB), HDD (GB), Operating System, Os_bit, Graphic Card (GB), Weight, Display Size, Warranty, Touchscreen, MSOffice, and Latest Price.
@@ -208,6 +209,7 @@ According to the plot, the majority of laptops in our dataset are priced between
 ![Fig 3. Intel Processor](images/Processor.jpg){width="300"}
 
 The key element that customers most closely associate with high-performing, quick technology is the computer processor. When comparing computers, the most important factor to consider is the computer processor speed. Making sure the processor works properly is critical to the longevity and functionality of each laptop. Our processor variable contains CPU's, GPU's, APU's and Graphic Cards. 
+
 ```CPU``` - Designed for general purpose tasks, most common applications, and is very compute intensive
 
 ```GPU``` - Designed for specialized tasks, such as graphics and video, most visual applications, and data processing in parallel.
@@ -312,22 +314,25 @@ We mutated the variables by factoring the numerical predictors.
 ### Splitting the data
 
 ```{r}
+rownames(laptop) <- 1:nrow(laptop) #updating index numbers
+laptop
+
+rownames(laptopbc) <- 1:nrow(laptopbc) # updating index numbers
+laptopbc
+
 set.seed(12)
 ec_split <- laptop %>%
   initial_split(prop = 0.80, strata = "latest_price")
 
 ec_train <- training(ec_split)
-dim(ec_train) #331 obs. 18 columns
 ec_test <- testing(ec_split)
+dim(ec_train) #331 obs. 18 columns
 dim(ec_test) #84 obs. 18 columns
 
-ec_splitbc <- laptopbc %>%
-  initial_split(prop = 0.80, strata = "latest_price")
-
-ec_trainbc <- training(ec_splitbc)
-dim(ec_trainbc) #331 obs. 18 columns
-ec_testbc <- testing(ec_splitbc)
-dim(ec_testbc) #84 obs. 18 columns
+ec_trainbc <- ec_train
+ec_trainbc$latest_price <- (1/lambda)*(ec_trainbc$latest_price^lambda-1)
+ec_testbc <- ec_test
+ec_testbc$latest_price <- (1/lambda)*(ec_testbc$latest_price^lambda-1)
 ```
 We split the data into  80% training and 20% testing as we felt that would be the best way to approach training and testing our models. We had to make two different splits. For ridge and lasso, the engines we use for those models already find the most optimal lambda and perform a transformation while predicting. For the boost and tree models we had to perform the transformations manually.
 
@@ -615,7 +620,7 @@ head(Ridge_RMSE)
 
 Looking at the mean and standard we get that 
 Ridge has the following values:
-```RSQ``` : mean = 0.757 & standard error = 0.0127
+```RSQ``` : mean = 0.753 & standard error = 0.0145
 
 Lasso
 ```{r, echo=FALSE}
@@ -623,7 +628,7 @@ head(Lasso_RMSE)
 ```
 Looking at the mean and standard we get that 
 Lasso has the following values:
-```RSQ``` : mean = 0.756 & standard error = 0.0129
+```RSQ``` : mean = 0.752 & standard error = 0.0137
 
 Boost
 ```{r, echo=FALSE}
@@ -631,7 +636,7 @@ head(Boost_RMSE)
 ```
 Looking at the mean and standard we get that 
 Boost has the following values:
-```RSQ``` : mean = 0.872 & standard error = 0.00966
+```RSQ``` : mean = 0.884 & standard error = 0.00978
 
 Tree
 ```{r, echo=FALSE}
@@ -639,7 +644,7 @@ head(Tree_RMSE)
 ```
 Looking at the mean and standard we get that 
 Tree has the following values:
-```RSQ``` : mean = 0.790 & standard error = 0.0153
+```RSQ``` : mean = 0.748 & standard error = 0.0205
 
 Looking at all the model's rsq, Boost would be the best model to test on the Testing Set. Boost has the highest RSQ mean and the lowest standard error.
 
@@ -662,11 +667,11 @@ Exploring the dataset we found some variables that significantly that affect the
 
 Before analyzing the results of the rsq from the training set, we thought the tree model would do best because most of our data was categorical. Based on the results, we can say that the tree model performed well. However, boost came out on top as the highest accuracy. Boost came out on top because it reduced the bias the best without significantly increasing the variance. The lasso and ridge models performed worse than the tree and boost models.
 
-This research shows Boost would be the best model. This model is the best at predicting the price of a laptop, based on the features the laptop has. Predicting with this model, will give the customer a price with around 90% accuracy. The goal of our project was achieved because we got a model with an accuracy over 70%.
+This research shows Boost would be the best model. This model is the best at predicting the price of a laptop, based on the features the laptop has. Predicting with this model, will give the customer a price with around 85% accuracy. The goal of our project was achieved because we got a model with an accuracy over 70%.
 
-Although our tree model didn't have the best accuracy, it can be the most useful model because it offers a solution for every distinct criterion that must be considered when looking for the best laptop. Customers can use the tree model to determine what features to look for based on the yes/no responses for each step of the tree, making it convenient to identify all required features. The tree model is simple to understand and interpret, and the results are straightforward. Since the tree model can be used for both classification and regression models and can accommodate both categorical and numerical data, it can be the most useful model for our original dataset, which contains both categorical and numerical variables. 
+Although our tree model didn't have the best accuracy, it can be the most useful model because it offers a solution for every distinct criterion that must be considered when looking for the best laptop. Customers can use the tree model to determine what features to look for based on the yes/no responses for each step of the tree, making it convenient to identify all required features. The tree model is simple to understand and to interpret, and the results are straightforward. Since the tree model can be used for both classification and regression models and can accommodate both categorical and numerical data, it can be the most useful model for our original dataset, which contains both categorical and numerical variables. 
 
-In conclusion, the boost model performed with the highest accuracy but we would recommend our tree model. The tree model does not have a high accuracy, like the boost, however it is still over 70%. We think that the usefulness of the tree model overshadows the decrease in accuracy.  
+In conclusion, the boost model performed with the highest accuracy of 84.9%, but we would recommend our tree model. The tree model does not have the highest accuracy, however it is still over 70% and meets our goal. We think that the usefulness of the tree model overshadows the decrease in accuracy. 
 
 ### What we improved on?
 
