@@ -2041,9 +2041,9 @@ ec_split &lt;- laptop %&gt;%
 
 ec_train &lt;- training(ec_split)
 ec_test &lt;- testing(ec_split)
-dim(ec_train) #331 obs. 18 columns</code></pre>
+dim(ec_train) #331 obs. 16 columns</code></pre>
 <pre><code>## [1] 331  16</code></pre>
-<pre class="r"><code>dim(ec_test) #84 obs. 18 columns</code></pre>
+<pre class="r"><code>dim(ec_test) #84 obs. 16 columns</code></pre>
 <pre><code>## [1] 84 16</code></pre>
 <pre class="r"><code>ec_trainbc &lt;- ec_train
 ec_trainbc$latest_price &lt;- (1/lambda)*(ec_trainbc$latest_price^lambda-1)

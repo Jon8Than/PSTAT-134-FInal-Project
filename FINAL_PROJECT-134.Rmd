@@ -326,8 +326,8 @@ ec_split <- laptop %>%
 
 ec_train <- training(ec_split)
 ec_test <- testing(ec_split)
-dim(ec_train) #331 obs. 18 columns
-dim(ec_test) #84 obs. 18 columns
+dim(ec_train) #331 obs. 16 columns
+dim(ec_test) #84 obs. 16 columns
 
 ec_trainbc <- ec_train
 ec_trainbc$latest_price <- (1/lambda)*(ec_trainbc$latest_price^lambda-1)
