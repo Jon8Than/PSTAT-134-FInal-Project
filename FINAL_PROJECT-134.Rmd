@@ -251,8 +251,6 @@ Going by a significance level of 0.05, the following features have a significant
 
 ```SSD GB``` : SSD is significant to the price
 
-```HHD GB``` : 512
-
 ```Operating System``` : The Operating System is significant to the price.
 
 ```Weight``` : The weight is significant to the price.
